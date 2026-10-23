@@ -1,5 +1,4 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -20,35 +19,13 @@ public class Main {
         messageList.add(msg4);
         messageList.add(msg5);
 
-        printConversation(messageList, tom, mark);
+        //printConversation(messageList, tom, mark);
 
-    }
+        UserService users = new UserService();
 
-    public static void printConversation(List<Message> messageList, User a, User b) {
-
-        if (messageList == null || a == null || b == null) {
-            throw new IllegalArgumentException("The parameters cannot be null");
-        }
-
-        boolean gotMessage = false;
-
-        for (Message message : messageList) {
-            if (isBetween(message, a, b)) {
-                gotMessage = true;
-                System.out.println(message.getSender().getName() + " : " + message.getContent());
-            }
-
-        }
-        if(!gotMessage){
-            System.out.println("No messages yet");
-        }
-    }
-
-    private static boolean isBetween(Message msg, User a, User b) {
-        User sender = msg.getSender();
-        User receiver = msg.getReceiver();
-
-        return (sender.equals(a) && receiver.equals(b) || sender.equals(b) && receiver.equals(a));
+        User harrison = users.register("Harrison", "psw1");
+        User logged = users.login("Harrison", "psw1");
+        System.out.println(logged);
     }
 }
 
