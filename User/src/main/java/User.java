@@ -15,6 +15,18 @@ public class User {
         return "User: " + this.name;
     }
 
+    @Override
+    public boolean equals(Object o){
+        if(this == o) return true;
+        if(!(o instanceof User other)) return false;
+        return this.name.equals(other.name);
+    }
+
+    @Override
+    public int hashCode(){
+        return this.name.hashCode();
+    }
+
     public String getName(){
         return this.name;
     }

@@ -1,4 +1,5 @@
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class Message {
     private User sender;
@@ -6,11 +7,11 @@ public class Message {
     private String content;
     private LocalDateTime sentAt;
 
-    public Message(User sender, User receiver, String content){
-        if(sender == null || receiver == null){
+    public Message(User sender, User receiver, String content) {
+        if (sender == null || receiver == null) {
             throw new IllegalArgumentException("Sender and receiver are required");
         }
-        if(content == null || content.isBlank()){
+        if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("Content cannot be empty");
         }
         this.sender = sender;
@@ -19,25 +20,27 @@ public class Message {
         this.sentAt = LocalDateTime.now();
     }
 
-    public User getSender(){
+    public User getSender() {
         return this.sender;
     }
 
-    public User getReceiver(){
+    public User getReceiver() {
         return this.receiver;
     }
 
-    public String getContent(){
+    public String getContent() {
         return this.content;
     }
 
-    public LocalDateTime getSentAt(){
+    public LocalDateTime getSentAt() {
         return this.sentAt;
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return "[" + this.sentAt + "] " + sender.getName() + "->" + receiver.getName() + " : " + this.content;
     }
+
+
 }
 
