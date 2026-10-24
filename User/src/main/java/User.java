@@ -1,11 +1,13 @@
 public class User {
+    private int id;
     private String name;
     private String password;
 
-    public User(String name, String password)  {
+    public User(int id, String name, String password)  {
         if (name == null || name.isBlank()){
             throw new IllegalArgumentException("Name cannot be empty");
         }
+        this.id =id;
         this.name = name;
         this.password = password;
     }
@@ -19,14 +21,17 @@ public class User {
     public boolean equals(Object o){
         if(this == o) return true;
         if(!(o instanceof User other)) return false;
-        return this.name.equals(other.name);
+        return this.id == other.id;
     }
 
     @Override
     public int hashCode(){
-        return this.name.hashCode();
+        return this.id;
     }
 
+    public int getId(){
+        return this.id;
+    }
     public String getName(){
         return this.name;
     }
