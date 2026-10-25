@@ -1,15 +1,17 @@
+import org.mindrot.jbcrypt.BCrypt;
+
 public class User {
     private int id;
     private String name;
-    private String password;
+    private String passwordHash;
 
-    public User(int id, String name, String password)  {
+    public User(int id, String name, String passwordHash)  {
         if (name == null || name.isBlank()){
             throw new IllegalArgumentException("Name cannot be empty");
         }
         this.id =id;
         this.name = name;
-        this.password = password;
+        this.passwordHash = passwordHash;
     }
 
     @Override
@@ -37,7 +39,7 @@ public class User {
     }
 
     public boolean checkPassword(String attempt) {
-        return this.password.equals(attempt);
+        return BCrypt.checkpw(attempt, this.passwordHash);
     }
 
 }

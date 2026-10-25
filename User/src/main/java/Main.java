@@ -5,18 +5,11 @@ import java.util.*;
 public class Main {
     public static void main(String[] args){
         UserService usrService = new UserService();
-        User katia = usrService.login("Katia", "hash");
-        User giorgio = usrService.login("Giorgio", "hash");
-        User sergio = usrService.login("Segio", "hash");
+        User katia = usrService.register("Delia", "password");
 
-        MessageService service = new MessageService();
-        service.send(giorgio, katia, "Hello K");
-        service.send(katia, giorgio, "Hello G");
-        service.send(sergio, katia, "Hi K");
-        service.send(katia, sergio, "Hi S");
+        System.out.println(usrService.login("Delia", "password"));
 
-        System.out.println(service.getConversation(katia, giorgio));
-        System.out.println(service.getConversation(sergio, giorgio));
+        usrService.login("Delia", "worng");
 
 
     }
