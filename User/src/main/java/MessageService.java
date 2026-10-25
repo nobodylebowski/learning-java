@@ -22,11 +22,4 @@ public class MessageService {
             throw new RuntimeException("Database error during message retrieving : " + e);
         }
     }
-
-    private static boolean isBetween(Message msg, User a, User b) {
-        User sender = msg.getSender();
-        User receiver = msg.getReceiver();
-
-        return ((sender.equals(a) && receiver.equals(b)) || (sender.equals(b) && receiver.equals(a)));
-    }
 }
