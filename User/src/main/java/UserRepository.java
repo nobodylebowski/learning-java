@@ -33,4 +33,19 @@ public class UserRepository {
                 }
             }
     }
+
+    public User findById(int id) throws SQLException {
+        String sql = "SELECT id, name, password_hash FROM users WHERE id=?";
+        try (Connection c= Database.connect();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new User(rs.getInt("id"), rs.getString("name"), rs.getString("password_hash"));
+                } else {
+                    return null;
+                }
+            }
+        }
+    }
 }

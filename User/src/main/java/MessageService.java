@@ -1,25 +1,26 @@
+import java.sql.SQLException;
 import java.util.*;
 
 public class MessageService {
-    private final List<Message> messages = new ArrayList<>();
+    private final MessageRepository repository = new MessageRepository();
 
     public Message send(User sender, User receiver, String content) {
-        Message msg =  new Message(sender, receiver, content);
-        messages.add(msg);
-        return msg;
+        try {
+        return repository.insert(sender, receiver, content);
+        } catch (SQLException e) {
+            throw new RuntimeException("Database error during message sending : " + e);
+        }
     }
 
     public List<Message> getConversation(User a, User b){
-        if (a == null || b == null ) {
-            throw new IllegalArgumentException("Users cannot be null");
+        try{
+                if (a == null || b == null ) {
+                throw new IllegalArgumentException("Users cannot be null");
+                }
+        return repository.findMessageBetween(a, b);
+        } catch (SQLException e) {
+            throw new RuntimeException("Database error during message retrieving : " + e);
         }
-        List<Message> conversation =  new ArrayList<>();
-        for( Message message : messages ) {
-            if (isBetween(message, a, b)) {
-                conversation.add(message);
-            }
-        }
-        return conversation;
     }
 
     private static boolean isBetween(Message msg, User a, User b) {
