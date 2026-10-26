@@ -15,6 +15,7 @@ public class WebServer {
     public static void main(String[] args) throws Exception{
         HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
         UserService userService = new UserService();
+        MessageService messageService = new MessageService();
         SessionManager session = new SessionManager();
 
         server.createContext("/", exchange ->{
@@ -66,13 +67,68 @@ public class WebServer {
         server.createContext("/chat", exchange -> {
             User user = currentUser(exchange, session);
             if (user == null) {
-                exchange.getResponseHeaders().add("Location", "/");
-                exchange.sendResponseHeaders(303, -1);
-                exchange.close();
+                redirect(exchange, "/");
+                return;
             }
-            send(exchange, 200,
-                    "<h1>Chat</h1><p>Logged in as: " + escape(user.getName()) + "</p>"
-            + "<form method='post' action='/logout'><button>Logout</button></from>");
+            try {
+                StringBuilder html = new StringBuilder();
+                html.append("<h1>Chat</h1>");
+                html.append("<p>Logged in as: ").append(escape(user.getName())).append("</p>");
+                html.append("<h2>Users</h2><ul>");
+                for(User u : userService.findAllExcept(user.getId())) {
+                    html.append("<li><a href='/chat?with=").append(u.getId()).append("'>");
+                    html.append(u.getName()).append("</a></li>");
+                }
+                html.append("</ul>");
+
+                Integer withId = readWith(exchange.getRequestURI().getQuery());
+                if (withId != null) {
+                    User other = userService.findById(withId);
+                    if (other == null) {
+                        html.append("<p>User not found</p>");
+                    } else {
+                        html.append("<h2>Conversation with ").append(escape(other.getName())).append("</h2>");
+
+                        for(Message m : messageService.getConversation(user, other)) {
+                            html.append("<p><b>").append(escape(m.getSender().getName()));
+                            html.append(":</b> ").append(escape(m.getContent())).append("</p>");
+                        }
+
+                        html.append("<form method='post' action='/send'>")
+                                .append("<input type='hidden' name ='to' value='").append(other.getId()).append("'>")
+                                .append("<input type='text' name='content' required autofocus>")
+                                .append("<button>Send</button>")
+                                .append("</form>");
+                    }
+                }
+                html.append("<form method='post' action='/logout'><button>Logout</button></form>");
+                send(exchange, 200, html.toString());
+            } catch (RuntimeException e) {
+                e.printStackTrace();
+                send(exchange, 500, "<p>Server error, please try again later</p>");
+            }
+        });
+
+        server.createContext("/send", exchange -> {
+            User me = currentUser(exchange, session);
+            if (me == null) { redirect(exchange, "/"); return; }
+            if (!exchange.getRequestMethod().equals("POST")) {
+                send(exchange, 405, "<p>Method not allowed</p>");
+                return;
+            }
+            Map<String, String> form = readForm(exchange);
+            try {
+                int toId = Integer.parseInt(form.get("to"));
+                User other = userService.findById(toId);
+                if (other == null) throw new IllegalArgumentException("User not found");
+                messageService.send(me, other, form.get("content"));
+                redirect(exchange, "chat?with=" + toId);
+            } catch (IllegalArgumentException e) {
+                send(exchange, 400, "<p>Error: " + escape(e.getMessage() + "<a href='/chat'>Back</a></p>"));
+            } catch (RuntimeException e) {
+                e.printStackTrace();
+                send(exchange, 500, "<p>Server error, please try again later</p>");
+            }
         });
 
         server.createContext("/logout", exchange -> {
@@ -147,4 +203,20 @@ public class WebServer {
         }
         return null;
     }
+
+    private static Integer readWith(String query) {
+        if (query == null || !query.startsWith("with=")) return null;
+        try {
+            return Integer.parseInt(query.substring(5));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static void redirect(HttpExchange exchange, String location) throws IOException{
+        exchange.getResponseHeaders().add("Location", location);
+        exchange.sendResponseHeaders(303, -1);
+        exchange.close();
+    }
+
 }

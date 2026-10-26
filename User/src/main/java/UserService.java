@@ -2,11 +2,13 @@ import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class UserService {
     private final UserRepository repository = new UserRepository();
     private final int MINIMUM_PASSWORD_LENGTH = 8;
+
     public User register(String name, String password) {
         if (name == null || password == null) {
             throw new IllegalArgumentException("Insert name and password for registration");
@@ -37,4 +39,21 @@ public class UserService {
             throw new RuntimeException("Database error during login: " + e);
         }
     }
+
+    public List<User> findAllExcept(int id) {
+        try {
+            return repository.findAllExcept(id);
+        } catch (SQLException e) {
+            throw new RuntimeException("Database error while fetching users: " + e);
+        }
+    }
+
+    public User findById(int id) {
+        try {
+            return repository.findById(id);
+        } catch (SQLException e) {
+            throw new RuntimeException("Database error while searching id " + id + ": " + e);
+        }
+    }
 }
+

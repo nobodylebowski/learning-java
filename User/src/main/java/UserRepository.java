@@ -2,6 +2,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserRepository {
 
@@ -47,5 +49,22 @@ public class UserRepository {
                 }
             }
         }
+    }
+
+    public List<User> findAllExcept(int id) throws SQLException {
+        String sql = "SELECT id, name, password_hash FROM users WHERE id <> ? ORDER BY name";
+        List<User> users = new ArrayList<>();
+        try (Connection c = Database.connect();
+        PreparedStatement ps = c.prepareStatement(sql)){
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()){
+                while(rs.next()) {
+                    users.add(new User(rs.getInt("id"), rs.getString("name"), rs.getString("password_hash")));
+                }
+
+            }
+
+        }
+        return users;
     }
 }
