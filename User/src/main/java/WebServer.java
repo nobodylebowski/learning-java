@@ -15,6 +15,7 @@ public class WebServer {
     public static void main(String[] args) throws Exception{
         HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
         UserService userService = new UserService();
+        SessionManager session = new SessionManager();
 
         server.createContext("/", exchange ->{
             byte[] body = readResource("login.html");
@@ -48,13 +49,40 @@ public class WebServer {
            Map<String, String> form = readForm(exchange);
            try {
                User user = userService.login(form.get("username"), form.get("password"));
-               send(exchange, 200, "<p>Welcome " + escape(user.getName()) + " !</p>");
+               String token = session.create(user);
+               exchange.getResponseHeaders().add("Set-Cookie",
+                       "session=" + token + "; HttpOnly; SameSite=Strict; Path=/");
+               exchange.getResponseHeaders().add("Location", "/chat");
+               exchange.sendResponseHeaders(303, -1);
+               exchange.close();
            } catch (IllegalArgumentException e) {
                send(exchange, 400, "<p>Error: " + escape(e.getMessage()) + "<a href='/'>Back</a></p>");
            } catch (RuntimeException e) {
                e.printStackTrace();
                send(exchange, 500, "<p>Server error, try again later</p>" );
            }
+        });
+
+        server.createContext("/chat", exchange -> {
+            User user = currentUser(exchange, session);
+            if (user == null) {
+                exchange.getResponseHeaders().add("Location", "/");
+                exchange.sendResponseHeaders(303, -1);
+                exchange.close();
+            }
+            send(exchange, 200,
+                    "<h1>Chat</h1><p>Logged in as: " + escape(user.getName()) + "</p>"
+            + "<form method='post' action='/logout'><button>Logout</button></from>");
+        });
+
+        server.createContext("/logout", exchange -> {
+           String token = getToken(exchange);
+           session.remove(token);
+           exchange.getResponseHeaders().add("Set-Cookie",
+                   "session =; Max-Age=0; HttpOnly; SameSite=Strict; Path=/");
+           exchange.getResponseHeaders().add("Location", "/");
+           exchange.sendResponseHeaders(303,-1);
+           exchange.close();
         });
 
         server.start();
@@ -100,5 +128,23 @@ public class WebServer {
         exchange.getResponseBody().write(body);
         exchange.close();
 
+    }
+
+    private static User currentUser(HttpExchange exchange, SessionManager sessions) {
+        String token = getToken(exchange);
+        if (token == null) return null;
+        return sessions.get(token);
+    }
+
+    private static String getToken(HttpExchange exchange) {
+        String header = exchange.getRequestHeaders().getFirst("Cookie");
+        if (header == null) return null;
+        for (String part : header.split(";")) {
+            String[] kv = part.trim().split("=", 2);
+            if (kv.length == 2 && kv[0].equals("session")) {
+                return kv[1];
+            }
+        }
+        return null;
     }
 }
