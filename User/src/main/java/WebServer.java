@@ -101,7 +101,6 @@ public class WebServer {
                                 .append("<button>Send</button>")
                                 .append("</form>");
 
-                        html.append("<button onclick='testSend()'>WebSocket Test</button>");
                         html.append("<script>")
                                 .append("const box = document.getElementById('messages');")
                                 .append("const ws = new WebSocket('ws://localhost:8887');")
@@ -111,7 +110,6 @@ public class WebServer {
                                 .append("   p.textContent = e.data;")
                                 .append("   box.appendChild(p);")
                                 .append("};")
-                                .append("function testSend() {ws.send('test from ' + document.title) ; }" )
                                 .append("</script>");
 
                     }
@@ -155,7 +153,7 @@ public class WebServer {
            exchange.sendResponseHeaders(303,-1);
            exchange.close();
         });
-        new ChatSocketServer(8887).start();
+        new ChatSocketServer(8887, session).start();
         server.start();
         System.out.println("Server on http://localhost:8081");
     }
