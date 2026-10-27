@@ -88,17 +88,32 @@ public class WebServer {
                         html.append("<p>User not found</p>");
                     } else {
                         html.append("<h2>Conversation with ").append(escape(other.getName())).append("</h2>");
-
+                        html.append("<div id='messages'>");
                         for(Message m : messageService.getConversation(user, other)) {
                             html.append("<p><b>").append(escape(m.getSender().getName()));
                             html.append(":</b> ").append(escape(m.getContent())).append("</p>");
                         }
+                        html.append("</div>");
 
                         html.append("<form method='post' action='/send'>")
                                 .append("<input type='hidden' name ='to' value='").append(other.getId()).append("'>")
                                 .append("<input type='text' name='content' required autofocus>")
                                 .append("<button>Send</button>")
                                 .append("</form>");
+
+                        html.append("<button onclick='testSend()'>WebSocket Test</button>");
+                        html.append("<script>")
+                                .append("const box = document.getElementById('messages');")
+                                .append("const ws = new WebSocket('ws://localhost:8887');")
+                                .append("ws.onopen = () => console.log('WebSocket connected');")
+                                .append("ws.onmessage = (e) => {")
+                                .append("   const p = document.createElement('p');")
+                                .append("   p.textContent = e.data;")
+                                .append("   box.appendChild(p);")
+                                .append("};")
+                                .append("function testSend() {ws.send('test from ' + document.title) ; }" )
+                                .append("</script>");
+
                     }
                 }
                 html.append("<form method='post' action='/logout'><button>Logout</button></form>");
