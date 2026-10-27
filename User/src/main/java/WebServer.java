@@ -17,6 +17,7 @@ public class WebServer {
         UserService userService = new UserService();
         MessageService messageService = new MessageService();
         SessionManager session = new SessionManager();
+        ChatSocketServer socketServer = new ChatSocketServer(8887, session);
 
         server.createContext("/", exchange ->{
             byte[] body = readResource("login.html");
@@ -105,10 +106,18 @@ public class WebServer {
                                 .append("const box = document.getElementById('messages');")
                                 .append("const ws = new WebSocket('ws://localhost:8887');")
                                 .append("ws.onopen = () => console.log('WebSocket connected');")
+                                .append("const me = ").append(user.getId()).append(";")
+                                .append("const other = ").append(other.getId()).append(";")
                                 .append("ws.onmessage = (e) => {")
-                                .append("   const p = document.createElement('p');")
-                                .append("   p.textContent = e.data;")
-                                .append("   box.appendChild(p);")
+                                .append("  const m = JSON.parse(e.data);")
+                                .append("  const inThisChat = (m.from === me && m.to === other) || (m.from === other && m.to === me);")
+                                .append("  if (!inThisChat) return;")
+                                .append("  const p = document.createElement('p');")
+                                .append("  const b = document.createElement('b');")
+                                .append("  b.textContent = m.name + ': ';")
+                                .append("  p.appendChild(b);")
+                                .append("  p.appendChild(document.createTextNode(m.content));")
+                                .append("  box.appendChild(p);")
                                 .append("};")
                                 .append("</script>");
 
@@ -134,7 +143,8 @@ public class WebServer {
                 int toId = Integer.parseInt(form.get("to"));
                 User other = userService.findById(toId);
                 if (other == null) throw new IllegalArgumentException("User not found");
-                messageService.send(me, other, form.get("content"));
+                Message saved = messageService.send(me, other, form.get("content"));
+                socketServer.pushMessage(saved);
                 redirect(exchange, "chat?with=" + toId);
             } catch (IllegalArgumentException e) {
                 send(exchange, 400, "<p>Error: " + escape(e.getMessage() + "<a href='/chat'>Back</a></p>"));
@@ -153,7 +163,7 @@ public class WebServer {
            exchange.sendResponseHeaders(303,-1);
            exchange.close();
         });
-        new ChatSocketServer(8887, session).start();
+        socketServer.start();
         server.start();
         System.out.println("Server on http://localhost:8081");
     }

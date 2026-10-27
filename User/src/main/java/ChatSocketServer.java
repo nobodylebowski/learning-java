@@ -71,4 +71,41 @@ public class ChatSocketServer extends WebSocketServer {
     public void onError(WebSocket conn, Exception ex) {
         ex.printStackTrace();
     }
+
+    public void pushMessage(Message m) {
+        String json = "{\"from\":" + m.getSender().getId()
+                + ",\"to\":"  + m.getReceiver().getId()
+                + ",\"name\":\"" + jsonEscape(m.getSender().getName()) + "\""
+                + ",\"content\":\"" + jsonEscape(m.getContent()) + "\"}";
+        sendToUser(m.getSender().getId(), json);
+        sendToUser(m.getReceiver().getId(), json);
+    }
+
+    private void sendToUser(int userId, String json) {
+        Set<WebSocket> set = connections.get(userId);
+        if (set == null) return;
+        for (WebSocket conn : set) {
+            if (conn.isOpen()) {
+                conn.send(json);
+            }
+        }
+    }
+
+    private static String jsonEscape(String s) {
+        StringBuilder sb = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) sb.append(String.format("\\u%04x", (int) c));
+                    else sb.append(c);
+                }
+            }
+        }
+        return sb.toString();
+    }
 }
