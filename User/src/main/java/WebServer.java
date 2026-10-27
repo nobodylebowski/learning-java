@@ -140,7 +140,7 @@ public class WebServer {
            exchange.sendResponseHeaders(303,-1);
            exchange.close();
         });
-
+        new ChatSocketServer(8887).start();
         server.start();
         System.out.println("Server on http://localhost:8081");
     }
