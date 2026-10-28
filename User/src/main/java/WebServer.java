@@ -20,7 +20,7 @@ public class WebServer {
         ChatSocketServer socketServer = new ChatSocketServer(8887, session);
 
         server.createContext("/", exchange ->{
-            byte[] body = readResource("login.html");
+            byte[] body = Http.readResource("login.html");
             exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, body.length);
             exchange.getResponseBody().write(body);
@@ -29,26 +29,26 @@ public class WebServer {
 
         server.createContext("/register", exchange -> {
             if(!exchange.getRequestMethod().equals("POST")) {
-                send(exchange, 405, "<p>Method not allowed</p>");
+                Http.send(exchange, 405, "<p>Method not allowed</p>");
                 return;
             }
-            Map<String, String> form = readForm(exchange);
+            Map<String, String> form = Http.readForm(exchange);
             try {
                 userService.register(form.get("username"), form.get("password"));
-                send(exchange, 200, "<p>Registered! <a href='/'>Go to Login</a></p>");
+                Http.send(exchange, 200, "<p>Registered! <a href='/'>Go to Login</a></p>");
             } catch (IllegalArgumentException e) {
-                send(exchange, 400, "<p>Error: " + e.getMessage() + "<a href='/'>Back</a></p>");
+                Http.send(exchange, 400, "<p>Error: " + e.getMessage() + "<a href='/'>Back</a></p>");
             } catch (RuntimeException e) {
                 e.printStackTrace();
-                send(exchange, 500, "<p>Server error, try again later</p>" );
+                Http.send(exchange, 500, "<p>Server error, try again later</p>" );
             }
         });
 
         server.createContext("/login", exchange -> {
            if(!exchange.getRequestMethod().equals("POST")) {
-               send(exchange, 405, "<p>Method not allowed</p>");
+               Http.send(exchange, 405, "<p>Method not allowed</p>");
            }
-           Map<String, String> form = readForm(exchange);
+           Map<String, String> form = Http.readForm(exchange);
            try {
                User user = userService.login(form.get("username"), form.get("password"));
                String token = session.create(user);
@@ -58,23 +58,23 @@ public class WebServer {
                exchange.sendResponseHeaders(303, -1);
                exchange.close();
            } catch (IllegalArgumentException e) {
-               send(exchange, 400, "<p>Error: " + escape(e.getMessage()) + "<a href='/'>Back</a></p>");
+               Http.send(exchange, 400, "<p>Error: " + Http.escape(e.getMessage()) + "<a href='/'>Back</a></p>");
            } catch (RuntimeException e) {
                e.printStackTrace();
-               send(exchange, 500, "<p>Server error, try again later</p>" );
+               Http.send(exchange, 500, "<p>Server error, try again later</p>" );
            }
         });
 
         server.createContext("/chat", exchange -> {
             User user = currentUser(exchange, session);
             if (user == null) {
-                redirect(exchange, "/");
+                Http.redirect(exchange, "/");
                 return;
             }
             try {
                 StringBuilder html = new StringBuilder();
                 html.append("<h1>Chat</h1>");
-                html.append("<p>Logged in as: ").append(escape(user.getName())).append("</p>");
+                html.append("<p>Logged in as: ").append(Http.escape(user.getName())).append("</p>");
                 html.append("<h2>Users</h2><ul>");
                 for(User u : userService.findAllExcept(user.getId())) {
                     html.append("<li><a href='/chat?with=").append(u.getId()).append("'>");
@@ -88,11 +88,12 @@ public class WebServer {
                     if (other == null) {
                         html.append("<p>User not found</p>");
                     } else {
-                        html.append("<h2>Conversation with ").append(escape(other.getName())).append("</h2>");
-                        html.append("<div id='messages'>");
+                        html.append("<h2>Conversation with ").append(Http.escape(other.getName())).append("</h2>");
+                        html.append("<div id='messages' data-me='").append(user.getId())
+                                .append("' data-other='").append(other.getId()).append("'/>");
                         for(Message m : messageService.getConversation(user, other)) {
-                            html.append("<p><b>").append(escape(m.getSender().getName()));
-                            html.append(":</b> ").append(escape(m.getContent())).append("</p>");
+                            html.append("<p><b>").append(Http.escape(m.getSender().getName()));
+                            html.append(":</b> ").append(Http.escape(m.getContent())).append("</p>");
                         }
                         html.append("</div>");
 
@@ -102,58 +103,25 @@ public class WebServer {
                                 .append("<button>Send</button>")
                                 .append("</form>");
 
-                        html.append("<script>")
-                                .append("const box = document.getElementById('messages');")
-                                .append("const ws = new WebSocket('ws://localhost:8887');")
-                                .append("ws.onopen = () => console.log('WebSocket connected');")
-                                .append("const me = ").append(user.getId()).append(";")
-                                .append("const other = ").append(other.getId()).append(";")
-                                .append("ws.onmessage = (e) => {")
-                                .append("  const m = JSON.parse(e.data);")
-                                .append("  const inThisChat = (m.from === me && m.to === other) || (m.from === other && m.to === me);")
-                                .append("  if (!inThisChat) return;")
-                                .append("  const p = document.createElement('p');")
-                                .append("  const b = document.createElement('b');")
-                                .append("  b.textContent = m.name + ': ';")
-                                .append("  p.appendChild(b);")
-                                .append("  p.appendChild(document.createTextNode(m.content));")
-                                .append("  box.appendChild(p);")
-                                .append("  p.scrollIntoView();")
-                                .append("};")
-                                .append("const form = document.getElementById('sendForm');")
-                                .append("const input = document.getElementById('content');")
-                                .append("form.addEventListener('submit', async (ev) => {")
-                                .append("  ev.preventDefault();")
-                                .append("  const text = input.value;")
-                                .append("  if (text.trim() === '') return;")
-                                .append("  const body = new URLSearchParams(new FormData(form));")
-                                .append("  try {")
-                                .append("    const res = await fetch('/send', { method: 'POST', body: body, headers: { 'X-Requested-With': 'fetch' } });")
-                                .append("    if (res.ok)  { input.value = ''; input.focus(); }")
-                                .append("    else { alert('Message not sent'); }")
-                                .append("  } catch (err) { alert('Network Error'); }")
-                                .append("});")
-                                .append("box.lastElementChild && box.lastElementChild.scrollIntoView();")
-                                .append("</script>");
-
+                        html.append("<script src='chat.js' defer></script>");
                     }
                 }
                 html.append("<form method='post' action='/logout'><button>Logout</button></form>");
-                send(exchange, 200, html.toString());
+                Http.send(exchange, 200, html.toString());
             } catch (RuntimeException e) {
                 e.printStackTrace();
-                send(exchange, 500, "<p>Server error, please try again later</p>");
+                Http.send(exchange, 500, "<p>Server error, please try again later</p>");
             }
         });
 
         server.createContext("/send", exchange -> {
             User me = currentUser(exchange, session);
-            if (me == null) { redirect(exchange, "/"); return; }
+            if (me == null) { Http.redirect(exchange, "/"); return; }
             if (!exchange.getRequestMethod().equals("POST")) {
-                send(exchange, 405, "<p>Method not allowed</p>");
+                Http.send(exchange, 405, "<p>Method not allowed</p>");
                 return;
             }
-            Map<String, String> form = readForm(exchange);
+            Map<String, String> form = Http.readForm(exchange);
             try {
                 int toId = Integer.parseInt(form.get("to"));
                 User other = userService.findById(toId);
@@ -167,14 +135,22 @@ public class WebServer {
                     exchange.close();
                 }
                 else {
-                    redirect(exchange, "/chat?with=" + toId);
+                    Http.redirect(exchange, "/chat?with=" + toId);
                 }
             } catch (IllegalArgumentException e) {
-                send(exchange, 400, "<p>Error: " + escape(e.getMessage() + "<a href='/chat'>Back</a></p>"));
+                Http.send(exchange, 400, "<p>Error: " + Http.escape(e.getMessage() + "<a href='/chat'>Back</a></p>"));
             } catch (RuntimeException e) {
                 e.printStackTrace();
-                send(exchange, 500, "<p>Server error, please try again later</p>");
+                Http.send(exchange, 500, "<p>Server error, please try again later</p>");
             }
+        });
+
+        server.createContext("/chat.js", exchange ->{
+            byte[] body = Http.readResource("chat.js");
+            exchange.getResponseHeaders().add("Content-Type", "application/javascript; charset=UTF-8");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
         });
 
         server.createContext("/logout", exchange -> {
@@ -189,47 +165,6 @@ public class WebServer {
         socketServer.start();
         server.start();
         System.out.println("Server on http://localhost:8081");
-    }
-
-    private static String escape(String s) {
-        if (s== null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
-    }
-    private static byte[] readResource(String name) throws IOException {
-        try (InputStream in = WebServer.class.getResourceAsStream("/" + name)) {
-            if (in == null) {
-                throw new IOException("Resource not found : " + name);
-            }
-            return in.readAllBytes();
-        }
-    }
-
-    private static Map<String, String> readForm(HttpExchange exchange) throws IOException {
-        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        Map<String, String> form = new HashMap<>();
-        for (String pair : body.split("&")) {
-            String[] kv = pair.split("=", 2);
-            if (kv.length == 2) {
-                form.put(
-                        URLDecoder.decode(kv[0], StandardCharsets.UTF_8),
-                        URLDecoder.decode(kv[1], StandardCharsets.UTF_8)
-                );
-            }
-        }
-        return form;
-    }
-
-    private static void send(HttpExchange exchange, int status, String html) throws IOException {
-        byte[] body = html.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
-        exchange.sendResponseHeaders(status, body.length);
-        exchange.getResponseBody().write(body);
-        exchange.close();
-
     }
 
     private static User currentUser(HttpExchange exchange, SessionManager sessions) {
@@ -251,11 +186,4 @@ public class WebServer {
             return null;
         }
     }
-
-    private static void redirect(HttpExchange exchange, String location) throws IOException{
-        exchange.getResponseHeaders().add("Location", location);
-        exchange.sendResponseHeaders(303, -1);
-        exchange.close();
-    }
-
 }
