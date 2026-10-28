@@ -25,15 +25,9 @@ public class ChatSocketServer extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         String cookieHeader = handshake.getFieldValue("Cookie");
-        String token = null;
-        if (cookieHeader != null) {
-            for (String part : cookieHeader.split(";")) {
-                String[] kv = part.trim().split("=", 2);
-                if (kv.length == 2 && kv[0].equals("session")) {
-                    token = kv[1];
-                }
-            }
-        }
+        String token = SessionManager.getCookieData(cookieHeader, "session");
+
+
         User user = sessions.get(token);
         if (token == null) {
             conn.close(1008, "Not logged in");

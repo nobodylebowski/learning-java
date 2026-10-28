@@ -96,9 +96,9 @@ public class WebServer {
                         }
                         html.append("</div>");
 
-                        html.append("<form method='post' action='/send'>")
+                        html.append("<form id='sendForm' method='post' action='/send'>")
                                 .append("<input type='hidden' name ='to' value='").append(other.getId()).append("'>")
-                                .append("<input type='text' name='content' required autofocus>")
+                                .append("<input type='text' id='content' name='content' required autofocus autocomplete='off'>")
                                 .append("<button>Send</button>")
                                 .append("</form>");
 
@@ -118,7 +118,22 @@ public class WebServer {
                                 .append("  p.appendChild(b);")
                                 .append("  p.appendChild(document.createTextNode(m.content));")
                                 .append("  box.appendChild(p);")
+                                .append("  p.scrollIntoView();")
                                 .append("};")
+                                .append("const form = document.getElementById('sendForm');")
+                                .append("const input = document.getElementById('content');")
+                                .append("form.addEventListener('submit', async (ev) => {")
+                                .append("  ev.preventDefault();")
+                                .append("  const text = input.value;")
+                                .append("  if (text.trim() === '') return;")
+                                .append("  const body = new URLSearchParams(new FormData(form));")
+                                .append("  try {")
+                                .append("    const res = await fetch('/send', { method: 'POST', body: body, headers: { 'X-Requested-With': 'fetch' } });")
+                                .append("    if (res.ok)  { input.value = ''; input.focus(); }")
+                                .append("    else { alert('Message not sent'); }")
+                                .append("  } catch (err) { alert('Network Error'); }")
+                                .append("});")
+                                .append("box.lastElementChild && box.lastElementChild.scrollIntoView();")
                                 .append("</script>");
 
                     }
@@ -145,7 +160,15 @@ public class WebServer {
                 if (other == null) throw new IllegalArgumentException("User not found");
                 Message saved = messageService.send(me, other, form.get("content"));
                 socketServer.pushMessage(saved);
-                redirect(exchange, "chat?with=" + toId);
+
+                boolean viaFetch = "fetch".equals(exchange.getResponseHeaders().getFirst("X-Requested-With"));
+                if (viaFetch) {
+                    exchange.sendResponseHeaders(204, -1);
+                    exchange.close();
+                }
+                else {
+                    redirect(exchange, "/chat?with=" + toId);
+                }
             } catch (IllegalArgumentException e) {
                 send(exchange, 400, "<p>Error: " + escape(e.getMessage() + "<a href='/chat'>Back</a></p>"));
             } catch (RuntimeException e) {
@@ -217,14 +240,7 @@ public class WebServer {
 
     private static String getToken(HttpExchange exchange) {
         String header = exchange.getRequestHeaders().getFirst("Cookie");
-        if (header == null) return null;
-        for (String part : header.split(";")) {
-            String[] kv = part.trim().split("=", 2);
-            if (kv.length == 2 && kv[0].equals("session")) {
-                return kv[1];
-            }
-        }
-        return null;
+        return SessionManager.getCookieData(header, "session");
     }
 
     private static Integer readWith(String query) {

@@ -23,4 +23,17 @@ public class SessionManager {
     public void remove(String token) {
         if (token != null) session.remove(token);
     }
+
+    public static String getCookieData(String cookieHeader, String data) {
+        String token = null;
+        if (cookieHeader != null) {
+            for (String part : cookieHeader.split(";")) {
+                String[] kv = part.trim().split("=", 2);
+                if (kv.length == 2 && kv[0].equals(data)) {
+                    token = kv[1];
+                }
+            }
+        }
+        return token;
+    }
 }
