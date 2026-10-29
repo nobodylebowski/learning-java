@@ -35,7 +35,7 @@ public class ChatSocketServer extends WebSocketServer {
         }
 
         String origin = handshake.getFieldValue("Origin");
-        if(!"http://localhost:8081".equals(origin)) {
+        if(!Config.ALLOWED_ORIGIN.equals(origin)) {
             conn.close(1008, "Bad origin");
             return;
         }

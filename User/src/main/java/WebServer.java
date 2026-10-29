@@ -13,18 +13,18 @@ public class WebServer {
 
 
     public static void main(String[] args) throws Exception{
-        HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
+        HttpServer server = HttpServer.create(new InetSocketAddress(Config.HTTP_PORT), 0);
         UserService userService = new UserService();
         MessageService messageService = new MessageService();
         SessionManager session = new SessionManager();
-        ChatSocketServer socketServer = new ChatSocketServer(8887, session);
+        ChatSocketServer socketServer = new ChatSocketServer(Config.WS_PORT, session);
         new AuthHandlers(userService, session).register(server);
         new ChatHandlers(userService, messageService, session, socketServer).register(server);
         new StaticHandlers().register(server);
 
         socketServer.start();
         server.start();
-        System.out.println("Server on http://localhost:8081");
+        System.out.println("Server on " + Config.ALLOWED_ORIGIN);
     }
 
 
