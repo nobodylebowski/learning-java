@@ -26,20 +26,4 @@ public class WebServer {
         server.start();
         System.out.println("Server on " + Config.ALLOWED_ORIGIN);
     }
-
-
-
-    private static String getToken(HttpExchange exchange) {
-        String header = exchange.getRequestHeaders().getFirst("Cookie");
-        return SessionManager.getCookieData(header, "session");
-    }
-
-    private static Integer readWith(String query) {
-        if (query == null || !query.startsWith("with=")) return null;
-        try {
-            return Integer.parseInt(query.substring(5));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
 }
