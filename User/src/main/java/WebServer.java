@@ -20,22 +20,7 @@ public class WebServer {
         ChatSocketServer socketServer = new ChatSocketServer(8887, session);
         new AuthHandlers(userService, session).register(server);
         new ChatHandlers(userService, messageService, session, socketServer).register(server);
-
-        server.createContext("/", exchange ->{
-            byte[] body = Http.readResource("login.html");
-            exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
-
-        server.createContext("/chat.js", exchange ->{
-            byte[] body = Http.readResource("chat.js");
-            exchange.getResponseHeaders().add("Content-Type", "application/javascript; charset=UTF-8");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
+        new StaticHandlers().register(server);
 
         socketServer.start();
         server.start();
