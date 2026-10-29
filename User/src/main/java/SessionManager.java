@@ -1,3 +1,5 @@
+import com.sun.net.httpserver.HttpExchange;
+
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Map;
@@ -35,5 +37,10 @@ public class SessionManager {
             }
         }
         return token;
+    }
+
+    public User fromRequest(HttpExchange exchange) {
+        String token = getCookieData(exchange.getRequestHeaders().getFirst("Cookie"), "session");
+        return get(token);
     }
 }
