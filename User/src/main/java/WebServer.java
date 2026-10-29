@@ -18,6 +18,7 @@ public class WebServer {
         MessageService messageService = new MessageService();
         SessionManager session = new SessionManager();
         ChatSocketServer socketServer = new ChatSocketServer(8887, session);
+        new AuthHandlers(userService, session).register(server);
 
         server.createContext("/", exchange ->{
             byte[] body = Http.readResource("login.html");
@@ -27,43 +28,7 @@ public class WebServer {
             exchange.close();
         });
 
-        server.createContext("/register", exchange -> {
-            if(!exchange.getRequestMethod().equals("POST")) {
-                Http.send(exchange, 405, "<p>Method not allowed</p>");
-                return;
-            }
-            Map<String, String> form = Http.readForm(exchange);
-            try {
-                userService.register(form.get("username"), form.get("password"));
-                Http.send(exchange, 200, "<p>Registered! <a href='/'>Go to Login</a></p>");
-            } catch (IllegalArgumentException e) {
-                Http.send(exchange, 400, "<p>Error: " + e.getMessage() + "<a href='/'>Back</a></p>");
-            } catch (RuntimeException e) {
-                e.printStackTrace();
-                Http.send(exchange, 500, "<p>Server error, try again later</p>" );
-            }
-        });
 
-        server.createContext("/login", exchange -> {
-           if(!exchange.getRequestMethod().equals("POST")) {
-               Http.send(exchange, 405, "<p>Method not allowed</p>");
-           }
-           Map<String, String> form = Http.readForm(exchange);
-           try {
-               User user = userService.login(form.get("username"), form.get("password"));
-               String token = session.create(user);
-               exchange.getResponseHeaders().add("Set-Cookie",
-                       "session=" + token + "; HttpOnly; SameSite=Strict; Path=/");
-               exchange.getResponseHeaders().add("Location", "/chat");
-               exchange.sendResponseHeaders(303, -1);
-               exchange.close();
-           } catch (IllegalArgumentException e) {
-               Http.send(exchange, 400, "<p>Error: " + Http.escape(e.getMessage()) + "<a href='/'>Back</a></p>");
-           } catch (RuntimeException e) {
-               e.printStackTrace();
-               Http.send(exchange, 500, "<p>Server error, try again later</p>" );
-           }
-        });
 
         server.createContext("/chat", exchange -> {
             User user = currentUser(exchange, session);
@@ -153,15 +118,6 @@ public class WebServer {
             exchange.close();
         });
 
-        server.createContext("/logout", exchange -> {
-           String token = getToken(exchange);
-           session.remove(token);
-           exchange.getResponseHeaders().add("Set-Cookie",
-                   "session =; Max-Age=0; HttpOnly; SameSite=Strict; Path=/");
-           exchange.getResponseHeaders().add("Location", "/");
-           exchange.sendResponseHeaders(303,-1);
-           exchange.close();
-        });
         socketServer.start();
         server.start();
         System.out.println("Server on http://localhost:8081");
