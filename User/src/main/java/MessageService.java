@@ -5,6 +5,9 @@ public class MessageService {
     private final MessageRepository repository = new MessageRepository();
 
     public Message send(User sender, User receiver, String content) {
+        if (sender == null || receiver == null) {
+            throw new IllegalArgumentException("Sender and receiver cannot be null");
+        }
         try {
         return repository.insert(sender, receiver, content);
         } catch (SQLException e) {
