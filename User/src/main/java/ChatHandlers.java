@@ -32,11 +32,19 @@ public class ChatHandlers {
         try {
             StringBuilder html = new StringBuilder();
             html.append("<h1>Chat</h1>");
+            html.append("<style>")
+                            .append(".dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#bbb}")
+                            .append(".dot.online{background:#2ecc71}")
+                            .append("</style>");
             html.append("<p>Logged in as: ").append(Http.escape(user.getName())).append("</p>");
             html.append("<h2>Users</h2><ul>");
             for(User u : userService.findAllExcept(user.getId())) {
-                html.append("<li><a href='/chat?with=").append(u.getId()).append("'>");
-                html.append(u.getName()).append("</a></li>");
+                boolean online = socketServer.isOnline(u.getId());
+                html.append("<li><span class='dot ");
+                html.append(online ? "online" : "offline");
+                html.append("' data-user='").append(u.getId()).append("'></span>");
+                html.append("<a href='/chat?with=").append(u.getId()).append("'>");
+                html.append(Http.escape(u.getName())).append("</a></li>");
             }
             html.append("</ul>");
 
@@ -60,10 +68,9 @@ public class ChatHandlers {
                             .append("<input type='text' id='content' name='content' required autofocus autocomplete='off'>")
                             .append("<button>Send</button>")
                             .append("</form>");
-
-                    html.append("<script src='chat.js' defer></script>");
                 }
             }
+            html.append("<script src='chat.js' defer></script>");
             html.append("<form method='post' action='/logout'><button>Logout</button></form>");
             Http.send(exchange, 200, html.toString());
         } catch (RuntimeException e) {
@@ -101,11 +108,6 @@ public class ChatHandlers {
             e.printStackTrace();
             Http.send(exchange, 500, "<p>Server error, please try again later</p>");
         }
-    }
-
-    private static String getToken(HttpExchange exchange) {
-        String header = exchange.getRequestHeaders().getFirst("Cookie");
-        return SessionManager.getCookieData(header, "session");
     }
 
     private static Integer readWith(String query) {

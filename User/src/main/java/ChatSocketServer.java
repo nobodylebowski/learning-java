@@ -40,7 +40,10 @@ public class ChatSocketServer extends WebSocketServer {
             return;
         }
         conn.setAttachment(user);
-        connections.computeIfAbsent(user.getId(), k -> new CopyOnWriteArraySet<>()).add(conn);
+        Set<WebSocket> set = connections.computeIfAbsent(user.getId(), k -> new CopyOnWriteArraySet<>());
+        boolean wasOffline = set.isEmpty();
+        set.add(conn);
+        if(wasOffline) broadcastStatus(user.getId(), true);
         System.out.println(user.getName() + " connected");
     }
 
@@ -56,6 +59,7 @@ public class ChatSocketServer extends WebSocketServer {
             Set<WebSocket> set = connections.get(user.getId());
             if(set != null) {
                 set.remove(conn);
+                if(set.isEmpty()) broadcastStatus(user.getId(), false);
             }
             System.out.println(user.getName() + " disconnected");
         }
@@ -101,5 +105,18 @@ public class ChatSocketServer extends WebSocketServer {
             }
         }
         return sb.toString();
+    }
+
+    public boolean isOnline(int userId) {
+        Set<WebSocket> set = connections.get(userId);
+        return set != null && !set.isEmpty();
+    }
+
+    private void broadcastStatus(int userId, boolean online) {
+        String json = "{\"type\":\"status\",\"user\":" + userId
+                + ",\"online\":" + online + "}";
+        for (WebSocket c : getConnections()) {
+            if (c.isOpen()) c.send(json);
+        }
     }
 }

@@ -37,6 +37,7 @@ public class Message {
     }
 
     public int getId() { return this.id; }
+    
     public User getSender() {
         return this.sender;
     }
