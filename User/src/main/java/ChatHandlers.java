@@ -31,6 +31,7 @@ public class ChatHandlers {
         }
         try {
             StringBuilder html = new StringBuilder();
+            html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Chat</title></head><body>");
             html.append("<h1>Chat</h1>");
             html.append("<style>")
                             .append(".dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#bbb}")
