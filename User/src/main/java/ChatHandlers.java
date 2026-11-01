@@ -31,13 +31,12 @@ public class ChatHandlers {
         }
         try {
             StringBuilder html = new StringBuilder();
-            html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Chat</title></head><body>");
+            html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Chat</title></head><body>")
+                .append("<link rel='stylesheet' href='/style.css'></head><body>");
             html.append("<h1>Chat</h1>");
-            html.append("<style>")
-                            .append(".dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#bbb}")
-                            .append(".dot.online{background:#2ecc71}")
-                            .append("</style>");
             html.append("<p>Logged in as: ").append(Http.escape(user.getName())).append("</p>");
+            html.append("<div class='layout'>");
+            html.append("<aside class='sidebar'>");
             html.append("<h2>Users</h2><ul>");
             for(User u : userService.findAllExcept(user.getId())) {
                 boolean online = socketServer.isOnline(u.getId());
@@ -48,7 +47,8 @@ public class ChatHandlers {
                 html.append(Http.escape(u.getName())).append("</a></li>");
             }
             html.append("</ul>");
-
+            html.append("</aside>");
+            html.append("<main class='conversation'>");
             Integer withId = readWith(exchange.getRequestURI().getQuery());
             if (withId != null) {
                 User other = userService.findById(withId);
@@ -72,6 +72,8 @@ public class ChatHandlers {
                             .append("</form>");
                 }
             }
+            html.append("</main>");
+            html.append("</div>");
             html.append("<script src='chat.js' defer></script>");
             html.append("<form method='post' action='/logout'><button>Logout</button></form>");
             Http.send(exchange, 200, html.toString());

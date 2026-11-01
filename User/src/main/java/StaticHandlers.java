@@ -6,6 +6,7 @@ import java.io.IOException;
 public class StaticHandlers {
     public void register(HttpServer server) {
         server.createContext("/chat.js", exchange -> serve(exchange, "chat.js", "application/javascript; charset=UTF-8"));
+        server.createContext("/style.css", exchange -> serve(exchange, "style.css", "text/css; charset=UTF-8"));
         server.createContext("/", exchange -> serve(exchange, "login.html", "text/html; charset=UTF-8"));
     }
 
