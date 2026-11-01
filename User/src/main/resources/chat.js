@@ -51,6 +51,10 @@ function handleMessage(e) {
     if (!inThisChat) return;
 
     const p = document.createElement('p');
+    const t = document.createElement('small');
+    t.textContent = m.time;
+    p.appendChild(t);
+    p.appendChild(document.createTextNode(' '));
     const b = document.createElement('b');
     b.textContent = m.name + ': ';
     p.appendChild(b);

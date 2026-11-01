@@ -1,4 +1,5 @@
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class Message {
@@ -7,6 +8,8 @@ public class Message {
     private User receiver;
     private String content;
     private LocalDateTime sentAt;
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM HH:mm");
 
     public Message(int id, User sender, User receiver, String content) {
         if (sender == null || receiver == null) {
@@ -54,6 +57,10 @@ public class Message {
         return this.sentAt;
     }
 
+    public String getTimeText() {
+        boolean today = sentAt.toLocalDate().equals(java.time.LocalDate.now());
+        return sentAt.format( today ? TIME_FORMAT : DATE_TIME_FORMAT);
+    }
     @Override
     public String toString() {
         return "[" + this.sentAt + "] " + sender.getName() + "->" + receiver.getName() + " : " + this.content;

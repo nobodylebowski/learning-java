@@ -74,6 +74,7 @@ public class ChatSocketServer extends WebSocketServer {
         String json = "{\"from\":" + m.getSender().getId()
                 + ",\"to\":"  + m.getReceiver().getId()
                 + ",\"name\":\"" + jsonEscape(m.getSender().getName()) + "\""
+                + ",\"time\":\"" + m.getTimeText() + "\""
                 + ",\"content\":\"" + jsonEscape(m.getContent()) + "\"}";
         sendToUser(m.getSender().getId(), json);
         sendToUser(m.getReceiver().getId(), json);

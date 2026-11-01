@@ -59,7 +59,8 @@ public class ChatHandlers {
                     html.append("<div id='messages' data-me='").append(user.getId())
                             .append("' data-other='").append(other.getId()).append("'/>");
                     for(Message m : messageService.getConversation(user, other)) {
-                        html.append("<p><b>").append(Http.escape(m.getSender().getName()));
+                        html.append("<p><small>").append(m.getTimeText()).append("</small> ");
+                        html.append("<b>").append(Http.escape(m.getSender().getName()));
                         html.append(":</b> ").append(Http.escape(m.getContent())).append("</p>");
                     }
                     html.append("</div>");
